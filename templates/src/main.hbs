@@ -8,7 +8,7 @@ use crate::{
     drivers::db::{init_db, migrate},
     server::api::commands::{
         {{~#each table_names}}
-        {{this}}::{find_{{ this }}_list, delete_{{ this }}_ids, find_{{ this }}_by_id, update_{{ this }}, create_{{ this }}, create_{{ this }}_batch},
+        {{this}}_controller::{find_{{ this }}_list, delete_{{ this }}_ids, find_{{ this }}_by_id, update_{{ this }}, create_{{ this }}, create_{{ this }}_batch},
         {{~/each}}
     },
     service::Service,

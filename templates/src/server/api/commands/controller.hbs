@@ -1,6 +1,9 @@
 
 use crate::{
-    server::api::model::{Create{{table_name}}VO, Update{{table_name}}VO, {{table_name}}VO, {{table_name}}OptionVO},
+    server::api::model::{{table_name_l}}_vo::{{table_name}}VO,
+    server::api::model::{{table_name_l}}_opt_vo::{{table_name}}OptionVO,
+    server::api::model::{{table_name_l}}_create_vo::Create{{table_name}}VO,
+    server::api::model::{{table_name_l}}_update_vo::Update{{table_name}}VO,
     service::{{table_name_l}}_service::{Create{{table_name}}Input, Update{{table_name}}Input}
 };
 use axum::{

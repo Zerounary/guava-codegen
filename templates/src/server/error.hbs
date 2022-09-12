@@ -64,6 +64,6 @@ app_error_register!{
     {{~#each table_names}}
     {{this.to_class_case()}}RepoError {
         NotFound => (StatusCode::NOT_FOUND, 1, "{{this.to_class_case()}} not found"),
-    }
+    },
     {{~/each}}
 }

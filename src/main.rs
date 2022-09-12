@@ -23,10 +23,12 @@ lazy_static! {
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
+
     let table_schema = "dwall";
     let table_names = vec!["Demand", "Book"];
 
     let mut db = init_db();
+    
 
     let mut all_columns = get_mysql_table_columns(&mut db, table_schema, table_names.clone()).await.unwrap();
     all_columns.iter_mut().for_each(|x| {
@@ -37,6 +39,7 @@ async fn main() {
     let tg = TableGlobal {
         table_names: table_names.iter().map(|x| x.to_lowercase().to_string()).collect(),
     };
+
 
     gen_root_file(".env", auto!(ywrite_html!(String, "{{> .env  tg}}")));
     gen_root_file(".gitignore", auto!(ywrite_html!(String, "{{> .gitignore tg}}")));
