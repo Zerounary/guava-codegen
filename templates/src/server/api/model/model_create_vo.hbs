@@ -1,0 +1,19 @@
+use serde::{Deserialize, Serialize};
+use struct_convert::Convert;
+
+
+use crate::{
+    entities::{{table_name_l}}::{{table_name}}BO,
+    entities::{{table_name_l}}::{{table_name}}OptionBO,
+    service::{{table_name_l}}_service::{Create{{table_name}}Input, Update{{table_name}}Input},
+};
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+#[derive(Convert)]
+#[convert(into = "Create{{table_name}}Input")]
+pub struct Create{{table_name}}VO {
+    {{~#each columns}}
+    pub {{column_name}}: {{column_type}},
+    {{~/each}}
+}

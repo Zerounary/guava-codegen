@@ -1,0 +1,22 @@
+use serde::{Deserialize, Serialize};
+use struct_convert::Convert;
+
+
+use crate::{
+    entities::{{table_name}}BO, {{table_name}}OptionBO},
+    service::{{table_name_l}}_service::{Create{{table_name}}Input, Update{{table_name}}Input},
+};
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Convert)]
+#[convert(from = "{{table_name}}BO")]
+pub struct {{table_name}}VO {
+    #[convert_field(to_string)]
+    {{~#each columns}}
+    {{~#if column_name == "id" }}
+    pub {{column_name}}: String,
+    {{~else}}
+    pub {{column_name}}: {{column_type}},
+    {{~/if}}
+    {{~/each}}
+}

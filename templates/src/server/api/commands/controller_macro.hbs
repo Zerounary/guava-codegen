@@ -1,0 +1,25 @@
+use crate::{
+    create, read,
+    server::api::model::{Create{{table_name}}VO, Update{{table_name}}VO, {{table_name}}VO, {{table_name}}OptionVO},
+    service::{{table_name_l}}_service::{Create{{table_name}}Input, Update{{table_name}}Input}, update, delete, entities::{{{table_name}}BO, {{table_name}}OptionBO},
+};
+use axum::{
+    extract::Path,
+    http::StatusCode,
+    response::{IntoResponse, Json},
+    Extension,
+};
+use itertools::Itertools;
+
+use super::{AppResult, Resp, State};
+
+read!(find_{{table_name_l}}_by_id > {{table_name}}VO);
+read!(find_{{table_name_l}}_by_id_no_cache > {{table_name}}VO);
+read!({{table_name}}OptionVO > find_{{table_name_l}}_list > Vec<{{table_name}}VO>);
+
+
+create!(Create{{table_name}}VO > create_{{table_name_l}}(Create{{table_name}}Input)  > {{table_name}}VO);
+create!(Vec<Create{{table_name}}VO> > create_{{table_name_l}}_batch(Vec<Create{{table_name}}Input>) > Vec<String>);
+
+update!(Update{{table_name}}VO -> update_{{table_name_l}}(Update{{table_name}}Input) -> {{table_name}}VO);
+delete!(delete_{{table_name_l}}_ids);

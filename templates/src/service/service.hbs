@@ -1,0 +1,140 @@
+// use cached::proc_macro::cached;
+use serde::Deserialize;
+
+use crate::{entities::{{{table_name}}BO, {{table_name}}OptionBO}, drivers::{cache::ServiceResult}, cache_value, cache};
+
+use super::Service;
+
+// 业务错误
+#[derive(Debug, Clone)]
+pub enum {{table_name}}RepoError {
+    #[allow(dead_code)]
+    NotFound,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[allow(dead_code)]
+pub struct Create{{table_name}}Input {
+    {{~#each columns}}
+    {{~#if column_name != "id" }}
+    pub {{column_name}}: {{column_type}},
+    {{~/if}}
+    {{~/each}}
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct Update{{table_name}}Input {
+    {{~#each columns}}
+    pub {{column_name}}: {{column_type}},
+    {{~/each}}
+}
+
+impl Service {
+
+    pub async fn find_{{table_name_l}}_list(&self, bo: {{table_name}}OptionBO) -> Result<Vec<{{table_name}}BO>, {{table_name}}RepoError> {
+        let result = self.repo.select_{{table_name_l}}_list(&self.db, bo).await;
+        match result {
+            Ok(result_list) => Ok(result_list),
+            Err(_e) => Err({{table_name}}RepoError::NotFound)
+        }
+    }
+
+    pub async fn find_{{table_name_l}}_by_id_no_cache(&self, id: i64) -> Result<{{table_name}}BO, {{table_name}}RepoError> {
+        let result = self.repo.select_{{table_name_l}}_by_id(&self.db, id).await;
+        match result {
+            Ok(bo) => Ok(bo),
+            Err(_e) => Err({{table_name}}RepoError::NotFound),
+        }
+    }
+    
+    pub async fn find_{{table_name_l}}_by_id(&self, id: i64) -> Result<{{table_name}}BO, {{table_name}}RepoError> {
+        cache!{
+            self(id) -> Result<{{table_name}}BO, {{table_name}}RepoError> {
+                let result = self.repo.select_{{table_name_l}}_by_id(&self.db, id).await;
+                match result {
+                    Ok(bo) => Ok(bo),
+                    Err(_e) => Err({{table_name}}RepoError::NotFound),
+                }
+            }
+        }
+    }
+
+    pub async fn create_{{table_name_l}}(&self, input: Create{{table_name}}Input) -> Result<{{table_name}}BO, {{table_name}}RepoError> {
+        let bo = {{table_name}}BO {
+            name: input.name,
+            description: input.description,
+            ..{{table_name}}BO::default()
+        };
+        let result = self.repo.create_{{table_name_l}}(&self.db, bo).await;
+
+        match result {
+            Ok(id) => self.find_{{table_name_l}}_by_id(id).await,
+            Err(e) => {
+                dbg!(e);
+                Err({{table_name}}RepoError::NotFound)
+            }
+        }
+    }
+
+    pub async fn create_{{table_name_l}}_batch(&self, mut input: Vec<Create{{table_name}}Input>) -> Result<Vec<i64>, {{table_name}}RepoError> {
+        let mut bos = input.iter_mut().map(|e| {
+            {{table_name}}BO {
+                name: e.name.clone(),
+                description: e.description.clone(),
+                ..{{table_name}}BO::default()
+            }
+        }).collect::<Vec<{{table_name}}BO>>();
+        let result = self.repo.create_{{table_name_l}}_batch(&self.db, &mut bos, 100).await;
+
+        match result {
+            Ok(insert_result) => Ok(insert_result.insert_ids),
+            Err(e) => {
+                dbg!(e);
+                Err({{table_name}}RepoError::NotFound)
+            }
+        }
+    }
+
+    pub async fn update_{{table_name_l}}(&self, input: Update{{table_name}}Input) -> Result<{{table_name}}BO, {{table_name}}RepoError> {
+        let bo = {{table_name}}BO {
+            id: input.id,
+            name: input.name,
+            description: input.description,
+            dlike: input.dlike,
+            ..{{table_name}}BO::default()
+        };
+        let result = self.repo.update_{{table_name_l}}_by_id(&self.db, &bo, bo.id).await;
+
+        match result {
+            Ok(_) => {
+                self.cache.invalidate(&input.id);
+                self.find_{{table_name_l}}_by_id(input.id).await
+            },
+            Err(_e) => Err({{table_name}}RepoError::NotFound),
+        }
+    }
+    pub async fn delete_{{table_name_l}}(&self, id: i64) -> Result<(), {{table_name}}RepoError> {
+        let result = self.repo.delete_{{table_name_l}}(&self.db, id).await;
+
+        match result {
+            Ok(_) => {
+                self.cache.invalidate(&id);
+                Ok(())
+            },
+            Err(_e) => Err({{table_name}}RepoError::NotFound),
+        }
+    }
+    pub async fn delete_{{table_name_l}}_ids(&self, ids: Vec<i64>) -> Result<(), {{table_name}}RepoError> {
+        let result = self.repo.delete_{{table_name_l}}_ids(&self.db, ids.clone()).await;
+
+        match result {
+            Ok(_) => {
+                for id in ids {
+                    self.cache.invalidate(&id);
+                }
+                Ok(())
+            },
+            Err(_e) => Err({{table_name}}RepoError::NotFound),
+        }
+    }
+}

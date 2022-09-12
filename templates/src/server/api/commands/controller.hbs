@@ -1,0 +1,89 @@
+
+use crate::{
+    server::api::model::{Create{{table_name}}VO, Update{{table_name}}VO, {{table_name}}VO, {{table_name}}OptionVO},
+    service::{{table_name_l}}_service::{Create{{table_name}}Input, Update{{table_name}}Input}
+};
+use axum::{
+    extract::Path,
+    http::StatusCode,
+    response::{IntoResponse, Json},
+    Extension,
+};
+use itertools::Itertools;
+
+use super::{AppResult, Resp, State};
+
+pub async fn find_{{table_name_l}}_by_id(
+    Path(id): Path<i64>,
+    Extension(state): State,
+) -> AppResult<{{table_name}}VO> {
+    let res = state.service.find_{{table_name_l}}_by_id(id).await?;
+    Resp::ok(res.into())
+}
+// read!(find_{{table_name_l}}_by_id > {{table_name}}VO);
+
+pub async fn find_{{table_name_l}}_by_id_no_cache(
+    Path(id): Path<i64>,
+    Extension(state): State,
+) -> AppResult<{{table_name}}VO> {
+    let res = state.service.find_{{table_name_l}}_by_id_no_cache(id).await?;
+    Resp::ok(res.into())
+}
+// read!(find_{{table_name_l}}_by_id_no_cache > {{table_name}}VO);
+
+pub async fn find_{{table_name_l}}_list(
+    Json(params): Json<{{table_name}}OptionVO>,
+    Extension(state): State,
+) -> AppResult<Vec<{{table_name}}VO>> {
+    let result = state.service.find_{{table_name_l}}_list(params.into()).await?;
+    let vos = result.into_iter().map(|x| x.into()).collect_vec();
+    Resp::ok(vos)
+}
+// read!({{table_name}}OptionVO > find_{{table_name_l}}_list > Vec<{{table_name}}VO>);
+
+pub async fn create_{{table_name_l}}(
+    Json(params): Json<Create{{table_name}}VO>,
+    Extension(state): State,
+) -> AppResult<{{table_name}}VO> {
+    let service_input: Create{{table_name}}Input = params.into();
+    let bo = state.service.create_{{table_name_l}}(service_input).await?;
+    Resp::ok(bo.into())
+}
+// create!(Create{{table_name}}VO > create_{{table_name_l}}(Create{{table_name}}Input)  > {{table_name}}VO);
+
+pub async fn create_{{table_name_l}}_batch(
+    Json(params): Json<Vec<Create{{table_name}}VO>>,
+    Extension(state): State,
+) -> AppResult<Vec<String>> {
+    let service_input: Vec<Create{{table_name}}Input> = params.into_iter().map(|x| x.into()).collect();
+    let service_result = state.service.create_{{table_name_l}}_batch(service_input).await?;
+    let result = service_result.into_iter().map(|x| x.to_string()).collect_vec();
+    Resp::ok(result)
+}
+// create!(Vec<Create{{table_name}}VO> > create_{{table_name_l}}_batch(Vec<Create{{table_name}}Input>) > Vec<String>);
+
+pub async fn update_{{table_name_l}}(
+    Path(id): Path<i64>,
+    Json(mut params): Json<Update{{table_name}}VO>,
+    Extension(state): State,
+) -> AppResult<{{table_name}}VO> {
+    params.id = Some(id);
+    let service_input: Update{{table_name}}Input = params.into();
+    let bo = state.service.update_{{table_name_l}}(service_input).await?;
+    Resp::ok(bo.into())
+}
+// update!(Update{{table_name}}VO -> update_{{table_name_l}}(Update{{table_name}}Input) -> {{table_name}}VO);
+
+pub async fn delete_{{table_name_l}}_ids(
+    Path(ids): Path<String>,
+    Extension(state): State
+) -> impl IntoResponse {
+    let ids: Vec<i64> = ids.split(",").into_iter().map(|x| x.trim().parse().unwrap_or(-1)).collect();
+    match state.service.delete_{{table_name_l}}_ids(ids).await {
+        Ok(_) => StatusCode::OK,
+        Err(_e) => StatusCode::NOT_FOUND,
+    }
+}
+// delete!(delete_{{table_name_l}}_ids);
+
+

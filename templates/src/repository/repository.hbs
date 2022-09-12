@@ -1,0 +1,45 @@
+use super::Repository;
+use crate::{
+    drivers::db::DB, entities::{{{table_name}}BO, {{table_name}}OptionBO}, impl_repo_insert, impl_repo_update, impl_repo_select_one, impl_repo_select_list, impl_repo_delete,
+};
+use itertools::Itertools;
+
+mod test {
+    use super::Repository;
+    use rbs::to_value;
+    use crate::drivers::db::DB;
+
+    impl Repository {
+
+        pub async fn delete_{{table_name_l}}(&self, pool: &DB, id: i64) -> Result<(), rbatis::Error> {
+            pool.fetch("DELETE FROM `{{table_name_l}}` where id = ?", vec![to_value!(id)])
+                .await
+                .unwrap();
+            Ok(())
+        }
+
+    }
+}
+
+// impl_repo_select!(UserBO{select_bo_by_id(id: i64) -> Option => "`where id = #{id}`"});
+impl_repo_select_one!({{table_name}}BO{select_{{table_name_l}}_by_id});
+//impl_repo_select_one!({{table_name}}BO{select_{{table_name_l}}_one(code:&str) => 
+//r#"
+//`where code = #{code}`
+//"#});
+impl_repo_select_list!({{table_name}}BO{select_{{table_name_l}}_list(bo:{{table_name}}OptionBO) => 
+    // 此处 可以用 py_sql 和 html_sql 对比使用
+r#"
+where:
+{{~#each columns}}
+  if bo.{{column_name}} != null && bo.{{column_name}} != '':
+    `and {{column_name}} = #{ bo.{{column_name}} }`
+{{~/each}}
+  "#});
+
+impl_repo_update!({{table_name}}BO{update_{{table_name_l}}_by_id(id: i64) => "`where id = #{id}`"});
+
+impl_repo_insert!({{table_name}}BO, create_{{table_name_l}}, create_{{table_name_l}}_batch);
+
+impl_repo_delete!({{table_name}}BO{delete_{{table_name_l}}_ids});
+

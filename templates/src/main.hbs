@@ -1,0 +1,96 @@
+pub mod drivers;
+pub mod entities;
+pub mod repository;
+pub mod server;
+pub mod service;
+
+use crate::{
+    drivers::db::{init_db, migrate},
+    server::api::commands::{
+        {{~#each table_names}}
+        {{this}}::{find_{{ this }}_list, delete_{{ this }}_ids, find_{{ this }}_by_id, update_{{ this }}, create_{{ this }}, create_{{ this }}_batch},
+        {{~/each}}
+    },
+    service::Service,
+};
+use axum::{
+    routing::{get, post},
+    Extension, Router,
+};
+use tower_http::{trace::TraceLayer};
+use std::{env, net::SocketAddr, sync::Arc};
+use tokio::signal;
+
+pub struct AppState {
+    service: Service,
+}
+
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    dotenv::dotenv().ok();
+
+    migrate().await;
+
+    let db = init_db();
+
+    // Inject a `AppState` into our handlers via a trait object. This could be
+    // the live implementation or just a mock for testing.
+    let service = Arc::new(AppState {
+        service: Service::new(db),
+    });
+
+    // build our application with a route
+    let app = Router::new()
+
+        {{~#each table_names}}
+        .route("/api/{{ this }}/list", post(find_{{ this }}_list))
+        .route(
+            "/api/{{ this }}/:id",
+            get(find_{{ this }}_by_id).delete(delete_{{ this }}_ids).patch(update_{{ this }}),
+        )
+        .route("/api/{{ this }}", post(create_{{ this }}))
+        .route("/api/{{ this }}/batch", post(create_{{ this }}_batch))
+        {{~/each}}
+        .merge(axum_extra::routing::SpaRouter::new("/assets", "dist/assets").index_file("../index.html")) // 静态页面直接复制dist目录到guava同级目录 会匹配首页
+        .layer(Extension(service))
+        .layer(TraceLayer::new_for_http());
+
+    // run it
+    let port = env::var("PORT").unwrap_or_default().parse().unwrap_or(3000);
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    println!("listening on {}", addr);
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
+
+    anyhow::Ok(())
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    println!("signal received, starting graceful shutdown");
+}
