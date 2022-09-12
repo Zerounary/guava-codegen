@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, collections::HashMap};
 
 use rbatis::Rbatis;
 use rbatis::executor::Executor;
@@ -32,32 +32,14 @@ pub struct Column {
 
 }
 
-#[py_sql(
-    "`select COLUMN_NAME as column_name, COLUMN_COMMENT as column_comment , COLUMN_TYPE as column_type, TABLE_NAME as table_name`
- ` from information_schema.COLUMNS c where c.table_name in (`
- trim ',':
-   for key,item in table_name:
-    `#{item},`
- `) and c.table_schema = #{schema} `"
-)]
-pub async fn get_mysql_table_columns(rb: &mut dyn Executor, schema: &str, table_name: Vec<&str>) -> Vec<Column> {
-    impled!()
+
+
+pub enum DBType {
+    Mysql,
+    Pg,
+    Sqlite,
 }
 
-pub fn get_db_type() -> DBType {
-    let parsed_db_url = Url::parse(&DATABASE_URL).ok();
-    match parsed_db_url {
-        Some(url) => match url.scheme() {
-            "postgres" => DBType::Pg,
-            "mysql" => DBType::Mysql,
-            "sqlite" => DBType::Sqlite,
-            _ => panic!("unsupport database"),
-        },
-        None => {
-            panic!("Incorrect database url")
-        }
-    }
-}
 
 pub fn init_db() -> Rbatis {
     let db = Rbatis::new();
@@ -88,10 +70,38 @@ pub fn mysql_column_type_to_rust_type(col_ty: &str) -> &str {
     }
 }
 
-pub enum DBType {
-    Mysql,
-    Pg,
-    Sqlite,
+pub fn get_db_type() -> DBType {
+    let parsed_db_url = Url::parse(&DATABASE_URL).ok();
+    match parsed_db_url {
+        Some(url) => match url.scheme() {
+            "postgres" => DBType::Pg,
+            "mysql" => DBType::Mysql,
+            "sqlite" => DBType::Sqlite,
+            _ => panic!("unsupport database"),
+        },
+        None => {
+            panic!("Incorrect database url")
+        }
+    }
 }
 
 
+#[py_sql(
+    "`select COLUMN_NAME as column_name, COLUMN_COMMENT as column_comment , COLUMN_TYPE as column_type, TABLE_NAME as table_name`
+ ` from information_schema.COLUMNS c where c.table_name in (`
+ trim ',':
+   for key,item in table_name:
+    `#{item},`
+ `) and c.table_schema = #{schema} `"
+)]
+pub async fn get_mysql_table_columns(rb: &mut dyn Executor, schema: &str, table_name: Vec<&str>) -> Vec<Column> {
+    impled!()
+}
+
+
+#[py_sql(
+    "`show create table ${table_name} `"
+)]
+pub async fn get_mysql_table_ddl(rb: &mut dyn Executor, table_name: &str) -> HashMap<String, String> {
+    impled!()
+}

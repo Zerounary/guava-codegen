@@ -3,7 +3,9 @@
 pub mod db;
 pub mod storage;
 
-use db::{get_mysql_table_columns, init_db, mysql_column_type_to_rust_type};
+use std::collections::HashMap;
+
+use db::{get_mysql_table_columns, init_db, mysql_column_type_to_rust_type, get_mysql_table_ddl};
 use inflector::Inflector;
 use serde::{Deserialize, Serialize};
 use storage::{gen_root_file, gen_file};
@@ -21,6 +23,13 @@ async fn main() {
 
     let mut db = init_db();
 
+    let mut ddls: Vec<String> = vec![];
+    for table_name in &table_names {
+        let result_map = get_mysql_table_ddl(&mut db, table_name).await.unwrap();
+        let ddl = result_map.get("Create Table").unwrap();
+        ddls.push(ddl.clone());
+    }
+
     let mut all_columns = get_mysql_table_columns(&mut db, table_schema, table_names.clone())
         .await
         .unwrap();
@@ -34,67 +43,72 @@ async fn main() {
             .iter()
             .map(|x| x.to_lowercase().to_string())
             .collect(),
+        table_ddls: ddls
     };
 
-    gen_root_file(".env", auto!(ywrite_html!(String, "{{> .env  tg}}")));
+    // 数据库表DDL
+    gen_root_file("migrations/V1__initial.sql", auto!(ywrite!(String, "{{> migrations/ddl  tg}}")));
+
+    // 根目录文件
+    gen_root_file(".env", auto!(ywrite!(String, "{{> .env  tg}}")));
     gen_root_file(
         ".gitignore",
-        auto!(ywrite_html!(String, "{{> .gitignore tg}}")),
+        auto!(ywrite!(String, "{{> .gitignore tg}}")),
     );
     gen_root_file(
         "Cargo.toml",
-        auto!(ywrite_html!(String, "{{> Cargo.toml.hbs  tg}}")),
+        auto!(ywrite!(String, "{{> Cargo.toml.hbs  tg}}")),
     );
     gen_root_file(
         "README.md",
-        auto!(ywrite_html!(String, "{{> README.md.hbs  tg}}")),
+        auto!(ywrite!(String, "{{> README.md.hbs  tg}}")),
     );
 
     // 生成mod
-    gen_file("main.rs", auto!(ywrite_html!(String, "{{> src/main tg}}")));
+    gen_file("main.rs", auto!(ywrite!(String, "{{> src/main tg}}")));
     gen_file(
         "entities/mod.rs",
-        auto!(ywrite_html!(String, "{{> src/entities/mod tg}}")),
+        auto!(ywrite!(String, "{{> src/entities/mod tg}}")),
     );
     gen_file(
         "server/api/mod.rs",
-        auto!(ywrite_html!(String, "{{> src/server/api/mod tg}}")),
+        auto!(ywrite!(String, "{{> src/server/api/mod tg}}")),
     );
     gen_file(
         "server/api/model/mod.rs",
-        auto!(ywrite_html!(String, "{{> src/server/api/model/mod tg}}")),
+        auto!(ywrite!(String, "{{> src/server/api/model/mod tg}}")),
     );
     gen_file(
         "server/api/commands/mod.rs",
-        auto!(ywrite_html!(String, "{{> src/server/api/commands/mod tg}}")),
+        auto!(ywrite!(String, "{{> src/server/api/commands/mod tg}}")),
     );
     gen_file(
         "server/mod.rs",
-        auto!(ywrite_html!(String, "{{> src/server/mod tg}}")),
+        auto!(ywrite!(String, "{{> src/server/mod tg}}")),
     );
     gen_file(
         "server/error.rs",
-        auto!(ywrite_html!(String, "{{> src/server/error tg}}")),
+        auto!(ywrite!(String, "{{> src/server/error tg}}")),
     );
     gen_file(
         "service/mod.rs",
-        auto!(ywrite_html!(String, "{{> src/service/mod tg}}")),
+        auto!(ywrite!(String, "{{> src/service/mod tg}}")),
     );
     gen_file(
         "repository/mod.rs",
-        auto!(ywrite_html!(String, "{{> src/repository/mod tg}}")),
+        auto!(ywrite!(String, "{{> src/repository/mod tg}}")),
     );
     gen_file(
         "drivers/mod.rs",
-        auto!(ywrite_html!(String, "{{> src/drivers/mod tg}}")),
+        auto!(ywrite!(String, "{{> src/drivers/mod tg}}")),
     );
     gen_file(
         "drivers/cache.rs",
-        auto!(ywrite_html!(String, "{{> src/drivers/cache tg}}")),
+        auto!(ywrite!(String, "{{> src/drivers/cache tg}}")),
     );
     gen_file(
         "drivers/db.rs",
-        auto!(ywrite_html!(String, "{{> src/drivers/db tg}}")),
+        auto!(ywrite!(String, "{{> src/drivers/db tg}}")),
     );
 
     table_names.iter().for_each(|table_name| {
@@ -114,54 +128,54 @@ async fn main() {
 
         gen_file(
             format!("entities/{}_bo.rs", &table_name_l).as_str(),
-            auto!(ywrite_html!(String, "{{> src/entities/BO table}}")),
+            auto!(ywrite!(String, "{{> src/entities/BO table}}")),
         );
         gen_file(
             format!("entities/{}_opt_bo.rs", &table_name_l).as_str(),
-            auto!(ywrite_html!(String, "{{> src/entities/OptionBO table}}")),
+            auto!(ywrite!(String, "{{> src/entities/OptionBO table}}")),
         );
         gen_file(
             format!("server/api/model/{}_vo.rs", &table_name_l).as_str(),
-            auto!(ywrite_html!(
+            auto!(ywrite!(
                 String,
                 "{{> src/server/api/model/model_vo table}}"
             )),
         );
         gen_file(
             format!("server/api/model/{}_opt_vo.rs", &table_name_l).as_str(),
-            auto!(ywrite_html!(
+            auto!(ywrite!(
                 String,
                 "{{> src/server/api/model/model_opt_vo table}}"
             )),
         );
         gen_file(
             format!("server/api/model/{}_create_vo.rs", &table_name_l).as_str(),
-            auto!(ywrite_html!(
+            auto!(ywrite!(
                 String,
                 "{{> src/server/api/model/model_create_vo table}}"
             )),
         );
         gen_file(
             format!("server/api/model/{}_update_vo.rs", &table_name_l).as_str(),
-            auto!(ywrite_html!(
+            auto!(ywrite!(
                 String,
                 "{{> src/server/api/model/model_update_vo table}}"
             )),
         );
         gen_file(
             format!("server/api/commands/{}_controller.rs", &table_name_l).as_str(),
-            auto!(ywrite_html!(
+            auto!(ywrite!(
                 String,
                 "{{> src/server/api/commands/controller table}}"
             )),
         );
         gen_file(
             format!("service/{}_service.rs", &table_name_l).as_str(),
-            auto!(ywrite_html!(String, "{{> src/service/service table}}")),
+            auto!(ywrite!(String, "{{> src/service/service table}}")),
         );
         gen_file(
             format!("repository/{}_repo.rs", &table_name_l).as_str(),
-            auto!(ywrite_html!(
+            auto!(ywrite!(
                 String,
                 "{{> src/repository/repository table}}"
             )),
@@ -172,4 +186,5 @@ async fn main() {
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct TableGlobal {
     pub table_names: Vec<String>,
+    pub table_ddls: Vec<String>,
 }
