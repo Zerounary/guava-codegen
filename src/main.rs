@@ -18,6 +18,7 @@ extern crate inflector;
 async fn main() {
     dotenv::dotenv().ok();
 
+    let project_name = env::var("PROJECT_NAME").unwrap();
     let table_schema = get_db_schema();
     let table_names: Vec<&str> = TABLES.split(",").collect::<Vec<_>>();
 
@@ -39,6 +40,7 @@ async fn main() {
     });
 
     let tg = TableGlobal {
+        project_name,
         table_names: table_names
             .iter()
             .map(|x| x.to_lowercase().to_string())
@@ -185,6 +187,7 @@ async fn main() {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct TableGlobal {
+    pub project_name: String,
     pub table_names: Vec<String>,
     pub table_ddls: Vec<String>,
 }
