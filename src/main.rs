@@ -23,8 +23,6 @@ lazy_static! {
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
-    yarte::recompile::when_changed();
-
     let table_schema = "dwall";
     let table_names = vec!["Demand", "Book"];
 
@@ -148,7 +146,11 @@ pub struct Column {
 
 #[py_sql(
     "`select COLUMN_NAME as column_name, COLUMN_COMMENT as column_comment , COLUMN_TYPE as column_type, TABLE_NAME as table_name`
- ` from information_schema.COLUMNS c where c.table_name = #{table_name} and c.table_schema = #{schema} `"
+ ` from information_schema.COLUMNS c where c.table_name in (`
+ trim ',':
+   for key,item in table_name:
+    `#{item},`
+ `) and c.table_schema = #{schema} `"
 )]
 async fn get_mysql_table_columns(rb: &mut dyn Executor, schema: &str, table_name: Vec<&str>) -> Vec<Column> {
     impled!()
