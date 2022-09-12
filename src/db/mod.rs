@@ -14,6 +14,9 @@ lazy_static! {
         // connect database
     pub static ref DATABASE_URL: String =
         env::var("DATABASE_URL").expect("No DATABASE_URL provided");
+
+    pub static ref TABLES: String =
+        env::var("TABLES").expect("No TABLES provided");
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone,)]
@@ -68,6 +71,22 @@ pub fn mysql_column_type_to_rust_type(col_ty: &str) -> &str {
     }else {
         "String"
     }
+}
+
+pub fn get_db_schema() -> String {
+  let parsed_db_url = Url::parse(&DATABASE_URL).ok();
+  match parsed_db_url {
+    Some(url) => {
+     url.path_segments()
+        .map(|c| c.collect::<Vec<_>>())
+        .unwrap()
+        .into_iter()
+        .last()
+        .map(|x| x.to_string())
+        .unwrap()
+    },
+  None => panic!("unsupport database"),
+}
 }
 
 pub fn get_db_type() -> DBType {

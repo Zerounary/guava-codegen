@@ -3,9 +3,9 @@
 pub mod db;
 pub mod storage;
 
-use std::collections::HashMap;
 
-use db::{get_mysql_table_columns, init_db, mysql_column_type_to_rust_type, get_mysql_table_ddl};
+use std::env;
+use db::{get_mysql_table_columns, init_db, mysql_column_type_to_rust_type, get_mysql_table_ddl, get_db_schema, TABLES};
 use inflector::Inflector;
 use serde::{Deserialize, Serialize};
 use storage::{gen_root_file, gen_file};
@@ -18,8 +18,8 @@ extern crate inflector;
 async fn main() {
     dotenv::dotenv().ok();
 
-    let table_schema = "dwall";
-    let table_names = vec!["Demand", "Book"];
+    let table_schema = get_db_schema();
+    let table_names: Vec<&str> = TABLES.split(",").collect::<Vec<_>>();
 
     let mut db = init_db();
 
@@ -30,7 +30,7 @@ async fn main() {
         ddls.push(ddl.clone());
     }
 
-    let mut all_columns = get_mysql_table_columns(&mut db, table_schema, table_names.clone())
+    let mut all_columns = get_mysql_table_columns(&mut db, &table_schema, table_names.clone())
         .await
         .unwrap();
     all_columns.iter_mut().for_each(|x| {
