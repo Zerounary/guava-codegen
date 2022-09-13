@@ -112,7 +112,18 @@ async fn main() {
         "drivers/db.rs",
         auto!(ywrite!(String, "{{> src/drivers/db tg}}")),
     );
-
+    gen_file(
+        "macros/mod.rs",
+        auto!(ywrite!(String, "{{> src/macros/mod tg}}")),
+    );
+    gen_file(
+        "macros/commands/mod.rs",
+        auto!(ywrite!(String, "{{> src/macros/commands/mod tg}}")),
+    );
+    gen_file(
+        "macros/repository/mod.rs",
+        auto!(ywrite!(String, "{{> src/macros/repository/mod tg}}")),
+    );
     table_names.iter().for_each(|table_name| {
         let table_name = String::from(*table_name);
         let table_name_l = table_name.to_string().to_lowercase();

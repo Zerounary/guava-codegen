@@ -3,7 +3,7 @@ use crate::{
     drivers::db::DB, 
     entities::{{table_name_l}}_bo::{{table_name}}BO,
     entities::{{table_name_l}}_opt_bo::{{table_name}}OptionBO,
-    impl_repo_insert, impl_repo_update, impl_repo_select_one, impl_repo_select_list, impl_repo_delete,
+    macros::repository::{impl_repo_insert, impl_repo_update, impl_repo_select_one, impl_repo_select_list, impl_repo_delete},
 };
 use itertools::Itertools;
 
